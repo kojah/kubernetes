@@ -72,14 +72,20 @@ func shellOut(sendStdin, script string) {
 		log.Fatalf("Failed to get stdout pipe: %v", err)
 	}
 
-	cmd.Start()
+	if err := cmd.Start(); err != nil {
+		log.Fatalf("Failed to start %v: %v", script, err)
+	}
 
 	stdin.Write([]byte(sendStdin))
 	stdin.Close()
 
-	out, err := io.ReadAll(stdout)
-	if err != nil {
-		log.Fatalf("Failed to execute %v: %v, err: %v", script, string(out), err)
+	out, readErr := io.ReadAll(stdout)
+	waitErr := cmd.Wait()
+	if readErr != nil {
+		log.Fatalf("Failed to read output from %v: %v, err: %v", script, string(out), readErr)
+	}
+	if waitErr != nil {
+		log.Fatalf("Failed to execute %v: %v, err: %v", script, string(out), waitErr)
 	}
 
 	log.Print(string(out))
